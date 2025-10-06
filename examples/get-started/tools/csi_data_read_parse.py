@@ -31,6 +31,7 @@ import numpy as np
 import serial
 from os import path
 from io import StringIO
+from datetime import datetime
 
 from PyQt5.Qt import *
 from pyqtgraph import PlotWidget
@@ -319,14 +320,17 @@ if __name__ == '__main__':
     if sys.version_info < (3, 6):
         print(" Python version should >= 3.6")
         exit()
+    
+    # Get current date and time as a formatted string
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     parser = argparse.ArgumentParser(
         description="Read CSI data from serial port and display it graphically")
     parser.add_argument('-p', '--port', dest='port', action='store', required=True,
                         help="Serial port number of csv_recv device")
-    parser.add_argument('-s', '--store', dest='store_file', action='store', default='./csi_data.csv',
+    parser.add_argument('-s', '--store', dest='store_file', action='store', default=f'./csi_data_{timestamp}.csv', # timestamp added
                         help="Save the data printed by the serial port to a file")
-    parser.add_argument('-l', '--log', dest="log_file", action="store", default="./csi_data_log.txt",
+    parser.add_argument('-l', '--log', dest="log_file", action="store", default=f'./csi_data_log_{timestamp}.txt', # timestamp added
                         help="Save other serial data the bad CSI data to a log file")
 
     args = parser.parse_args()
