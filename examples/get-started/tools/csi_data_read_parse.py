@@ -216,7 +216,8 @@ def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
         index = strings.find('CSI_DATA')
 
         if index == -1:
-            log_file_fd.write(strings + '\n')
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            log_file_fd.write(f"{current_time} {strings}\n")
             log_file_fd.flush()
             continue
 
@@ -226,8 +227,9 @@ def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
         if len(csi_data) != len(DATA_COLUMNS_NAMES) and len(csi_data) != len(DATA_COLUMNS_NAMES_C5C6):
             print("element number is not equal",len(csi_data),len(DATA_COLUMNS_NAMES) )
             # print(csi_data)
-            log_file_fd.write("element number is not equal\n")
-            log_file_fd.write(strings + '\n')
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            log_file_fd.write(f"{current_time} element number is not equal\n")
+            log_file_fd.write(f"{current_time} {strings}\n")
             log_file_fd.flush()
             continue
 
@@ -235,14 +237,15 @@ def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
             csi_raw_data = json.loads(csi_data[-1])
         except json.JSONDecodeError:
             print("data is incomplete")
-            log_file_fd.write("data is incomplete\n")
-            log_file_fd.write(strings + '\n')
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            log_file_fd.write(f"{current_time} data is incomplete\n")
+            log_file_fd.write(f"{current_time} {strings}\n")
             log_file_fd.flush()
             continue
         if csi_data_len != len(csi_raw_data):
             print("csi_data_len is not equal",csi_data_len,len(csi_raw_data))
-            log_file_fd.write("csi_data_len is not equal\n")
-            log_file_fd.write(strings + '\n')
+            log_file_fd.write(f"{current_time} csi_data_len is not equal\n")
+            log_file_fd.write(f"{current_time} {strings}\n")
             log_file_fd.flush()
             continue
 
@@ -252,7 +255,11 @@ def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
         fft_gains.append(fft_gain)
         agc_gains.append(agc_gain)
 
-        csv_writer.writerow(csi_data)
+        # Get current timestamp for this row
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
+        # Prepend timestamp to the row
+        csv_writer.writerow([current_time] + csi_data)
 
         # Rotate data to the left
         # csi_data_array[:-1] = csi_data_array[1:]
@@ -306,7 +313,8 @@ class SubThread (QThread):
         save_file_fd = open(save_file_name, 'w')
         self.log_file_fd = open(log_file_name, 'w')
         self.csv_writer = csv.writer(save_file_fd)
-        self.csv_writer.writerow(DATA_COLUMNS_NAMES)
+        self.csv_writer.writerow(["Read Time"] + DATA_COLUMNS_NAMES)
+
 
     def run(self):
         csi_data_read_parse(self.serial_port, self.csv_writer, self.log_file_fd,callback=self.data_ready.emit)
