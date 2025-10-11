@@ -202,7 +202,7 @@ def generate_subcarrier_colors(red_range, green_range, yellow_range, total_num,i
 def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
     global fft_gains, agc_gains
     ser = serial.Serial(port=port, baudrate=921600,bytesize=8, parity='N', stopbits=1)
-    count =0
+    count = 0
     if ser.isOpen():
         print("open success")
     else:
@@ -258,8 +258,60 @@ def csi_data_read_parse(port: str, csv_writer, log_file_fd,callback=None):
         # Get current timestamp for this row
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
+
+
+
+
+        # -------------------- CORRECTED ANTENNA EXTRACTION START -------------------- #
+        num_antennas = 3
+        num_subcarriers = csi_data_len // (num_antennas * 2)
+
+        ant0_complex = []
+        ant1_complex = []
+        ant2_complex = []
+
+        for i in range(num_subcarriers):
+            base = i * num_antennas * 2  # each subcarrier = 3 antennas × 2 (I, Q)
+
+            # Ant0
+            I0, Q0 = csi_raw_data[base], csi_raw_data[base + 1]
+            ant0_complex.append(complex(I0, Q0))
+
+            # Ant1
+            I1, Q1 = csi_raw_data[base + 2], csi_raw_data[base + 3]
+            ant1_complex.append(complex(I1, Q1))
+
+            # Ant2
+            I2, Q2 = csi_raw_data[base + 4], csi_raw_data[base + 5]
+            ant2_complex.append(complex(I2, Q2))
+
+        # Magnitudes and mean
+        ant0_magnitude = [abs(x) for x in ant0_complex]
+        mean_magnitude = [(abs(a0) + abs(a1) + abs(a2)) / 3
+                        for a0, a1, a2 in zip(ant0_complex, ant1_complex, ant2_complex)]
+
+        # Convert to comma-separated strings
+        ant0_complex_str = ",".join([f"{c.real},{c.imag}" for c in ant0_complex])
+        ant1_complex_str = ",".join([f"{c.real},{c.imag}" for c in ant1_complex])
+        ant2_complex_str = ",".join([f"{c.real},{c.imag}" for c in ant2_complex])
+        ant0_magnitude_str = ",".join(map(str, ant0_magnitude))
+        mean_magnitude_str = ",".join(map(str, mean_magnitude))
+
+
+        # -------------------- CORRECTED ANTENNA EXTRACTION END -------------------- #
+
+
+
+
+
+
+
         # Prepend timestamp to the row
-        csv_writer.writerow([current_time] + csi_data)
+        csv_writer.writerow([current_time] + csi_data[:-1] +
+                    [ant0_complex_str, ant1_complex_str, ant2_complex_str,
+                     ant0_magnitude_str, mean_magnitude_str, csi_data[-1]])
+
+
 
         # Rotate data to the left
         # csi_data_array[:-1] = csi_data_array[1:]
@@ -313,7 +365,8 @@ class SubThread (QThread):
         save_file_fd = open(save_file_name, 'w')
         self.log_file_fd = open(log_file_name, 'w')
         self.csv_writer = csv.writer(save_file_fd)
-        self.csv_writer.writerow(["Read Time"] + DATA_COLUMNS_NAMES)
+        new_columns = ["Ant0 data", "Ant1 data", "Ant2 data", "Ant0_magnitude", "Mean_magnitude"]
+        self.csv_writer.writerow(["Read Time"] + DATA_COLUMNS_NAMES[:-1] + new_columns + ["data"])
 
 
     def run(self):
