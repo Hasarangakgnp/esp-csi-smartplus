@@ -267,9 +267,9 @@ static void wifi_csi_init()
 #else
     wifi_csi_config_t csi_config = {
         .lltf_en           = true,
-        .htltf_en          = true,
-        .stbc_htltf2_en    = true,
-        .ltf_merge_en      = true,
+        .htltf_en          = false,
+        .stbc_htltf2_en    = false,
+        .ltf_merge_en      = false,
         .channel_filter_en = true,
         .manu_scale        = false,
         .shift             = false,
